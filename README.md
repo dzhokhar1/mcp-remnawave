@@ -6,6 +6,11 @@
 
 <a id="english"></a>
 
+> [!NOTE]
+> This repository is a fork of [TrackLine/mcp-remnawave](https://github.com/TrackLine/mcp-remnawave).
+>
+> **Main Difference:** This fork adds support for cookie-based authentication (`REMNAWAVE_COOKIE` / `REMNAWAVE_COOKIES`), allowing the MCP server to successfully communicate with Remnawave panels deployed behind reverse proxies with cookie protection (such as `eGamesAPI/remnawave-reverse-proxy` or setups requiring a secret key like `SECRET_KEY=SECRET_KEY`).
+
 ## MCP Server for Remnawave Panel
 
 MCP server ([Model Context Protocol](https://modelcontextprotocol.io)) providing LLM clients (Claude Desktop, Cursor, Windsurf, etc.) with tools to manage a [Remnawave](https://github.com/remnawave/) VPN panel.
@@ -45,11 +50,14 @@ Create a `.env` file or pass environment variables:
 | `REMNAWAVE_BASE_URL` | Yes | Panel URL (e.g. `https://vpn.example.com`) |
 | `REMNAWAVE_API_TOKEN` | Yes | API token from panel settings |
 | `REMNAWAVE_API_KEY` | No | API key for Caddy reverse proxy authentication |
+| `REMNAWAVE_COOKIE` | No | Cookie header for panels protected by reverse proxy cookie auth (e.g. `SECRET_KEY=SECRET_KEY`) |
 | `REMNAWAVE_READONLY` | No | Set to `true` to enable readonly mode |
 
 ```env
 REMNAWAVE_BASE_URL=https://vpn.example.com
 REMNAWAVE_API_TOKEN=your-api-token-here
+# Optional:
+# REMNAWAVE_COOKIE=SECRET_KEY=SECRET_KEY
 ```
 
 ### Caddy with Custom Path
@@ -62,6 +70,16 @@ REMNAWAVE_API_KEY=your-caddy-api-key
 ```
 
 The `X-Api-Key` header will be added to every request automatically.
+
+### Cookie Auth / Reverse Proxy Protection
+
+If your panel is deployed behind a reverse proxy using cookie protection (e.g. `remnawave-reverse-proxy` with a secret key like `SECRET_KEY=SECRET_KEY`), configure the cookie variable:
+
+```env
+REMNAWAVE_COOKIE=SECRET_KEY=SECRET_KEY
+```
+
+The `Cookie` header will be added to every request automatically.
 
 ### Readonly Mode
 
@@ -106,6 +124,7 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
         "REMNAWAVE_BASE_URL": "https://vpn.example.com",
         "REMNAWAVE_API_TOKEN": "your-api-token-here",
         "REMNAWAVE_API_KEY": "your-caddy-api-key",
+        "REMNAWAVE_COOKIE": "SECRET_KEY=SECRET_KEY",
         "REMNAWAVE_READONLY": "false"
       }
     }
@@ -127,6 +146,7 @@ Add to `.cursor/mcp.json` or `.windsurf/mcp.json` in your project:
         "REMNAWAVE_BASE_URL": "https://vpn.example.com",
         "REMNAWAVE_API_TOKEN": "your-api-token-here",
         "REMNAWAVE_API_KEY": "your-caddy-api-key",
+        "REMNAWAVE_COOKIE": "SECRET_KEY=SECRET_KEY",
         "REMNAWAVE_READONLY": "false"
       }
     }
@@ -465,6 +485,11 @@ MIT
 
 <a id="русский"></a>
 
+> [!NOTE]
+> Этот репозиторий является форком [TrackLine/mcp-remnawave](https://github.com/TrackLine/mcp-remnawave).
+>
+> **Основное отличие:** В этом форке добавлена поддержка авторизации через Cookie (`REMNAWAVE_COOKIE` / `REMNAWAVE_COOKIES`). Это позволяет MCP-серверу взаимодействовать с панелями Remnawave, развернутыми за реверс-прокси с защитой по кукам (например, при использовании `eGamesAPI/remnawave-reverse-proxy` с секретным ключом вида `SECRET_KEY=SECRET_KEY`), что оригинальным репозиторием не поддерживается.
+
 ## MCP-сервер для Remnawave Panel
 
 MCP-сервер ([Model Context Protocol](https://modelcontextprotocol.io)), предоставляющий LLM-клиентам (Claude Desktop, Cursor, Windsurf и др.) инструменты для управления VPN-панелью [Remnawave](https://github.com/remnawave/).
@@ -504,11 +529,14 @@ npm run build
 | `REMNAWAVE_BASE_URL` | Да | URL панели (например `https://vpn.example.com`) |
 | `REMNAWAVE_API_TOKEN` | Да | API-токен из настроек панели |
 | `REMNAWAVE_API_KEY` | Нет | API-ключ для аутентификации через Caddy reverse proxy |
+| `REMNAWAVE_COOKIE` | Нет | Заголовок Cookie для панелей, защищенных авторизацией через куки (например, `SECRET_KEY=SECRET_KEY`) |
 | `REMNAWAVE_READONLY` | Нет | `true` для включения режима только чтения |
 
 ```env
 REMNAWAVE_BASE_URL=https://vpn.example.com
 REMNAWAVE_API_TOKEN=ваш-api-токен
+# Необязательно:
+# REMNAWAVE_COOKIE=SECRET_KEY=SECRET_KEY
 ```
 
 ### Caddy с кастомным путём
@@ -521,6 +549,16 @@ REMNAWAVE_API_KEY=ваш-caddy-api-ключ
 ```
 
 Заголовок `X-Api-Key` будет автоматически добавляться к каждому запросу.
+
+### Защита Cookie-авторизацией / Реверс-прокси
+
+Если ваша панель развёрнута за реверс-прокси с защитой куки (например, `remnawave-reverse-proxy` с секретным ключом `SECRET_KEY=SECRET_KEY`), укажите значение для куки:
+
+```env
+REMNAWAVE_COOKIE=SECRET_KEY=SECRET_KEY
+```
+
+Заголовок `Cookie` будет автоматически добавляться к каждому запросу.
 
 ### Режим Readonly
 
@@ -565,6 +603,7 @@ REMNAWAVE_API_KEY=ваш-caddy-api-ключ
         "REMNAWAVE_BASE_URL": "https://vpn.example.com",
         "REMNAWAVE_API_TOKEN": "ваш-api-токен",
         "REMNAWAVE_API_KEY": "ваш-caddy-api-ключ",
+        "REMNAWAVE_COOKIE": "SECRET_KEY=SECRET_KEY",
         "REMNAWAVE_READONLY": "false"
       }
     }
@@ -586,6 +625,7 @@ REMNAWAVE_API_KEY=ваш-caddy-api-ключ
         "REMNAWAVE_BASE_URL": "https://vpn.example.com",
         "REMNAWAVE_API_TOKEN": "ваш-api-токен",
         "REMNAWAVE_API_KEY": "ваш-caddy-api-ключ",
+        "REMNAWAVE_COOKIE": "SECRET_KEY=SECRET_KEY",
         "REMNAWAVE_READONLY": "false"
       }
     }

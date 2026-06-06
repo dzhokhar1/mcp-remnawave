@@ -14,6 +14,9 @@ export class RemnawaveClient {
         if (config.apiKey) {
             this.headers['X-Api-Key'] = config.apiKey;
         }
+        if (config.cookie) {
+            this.headers['Cookie'] = config.cookie;
+        }
     }
 
     private async request<T = unknown>(
