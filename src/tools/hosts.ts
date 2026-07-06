@@ -95,6 +95,10 @@ export function registerHostTools(server: McpServer, client: RemnawaveClient, re
                 .optional()
                 .describe('Security layer'),
             tag: z.string().optional().describe('Host tag'),
+            tags: z.array(z.string()).optional().describe('Array of host tags'),
+            pinnedPeerCertSha256: z.string().optional().describe('Pinned peer certificate SHA256'),
+            verifyPeerCertByName: z.boolean().optional().describe('Verify peer certificate by name'),
+            mihomoIpVersion: z.enum(['ipv4', 'ipv6', 'dual']).optional().describe('Mihomo IP version configuration'),
             serverDescription: z
                 .string()
                 .optional()
@@ -131,6 +135,10 @@ export function registerHostTools(server: McpServer, client: RemnawaveClient, re
                 if (params.securityLayer !== undefined)
                     body.securityLayer = params.securityLayer;
                 if (params.tag !== undefined) body.tag = params.tag;
+                if (params.tags !== undefined) body.tags = params.tags;
+                if (params.pinnedPeerCertSha256 !== undefined) body.pinnedPeerCertSha256 = params.pinnedPeerCertSha256;
+                if (params.verifyPeerCertByName !== undefined) body.verifyPeerCertByName = params.verifyPeerCertByName;
+                if (params.mihomoIpVersion !== undefined) body.mihomoIpVersion = params.mihomoIpVersion;
                 if (params.serverDescription !== undefined)
                     body.serverDescription = params.serverDescription;
                 if (params.nodes !== undefined) body.nodes = params.nodes;
@@ -183,6 +191,10 @@ export function registerHostTools(server: McpServer, client: RemnawaveClient, re
                 .optional()
                 .describe('New security layer'),
             tag: z.string().optional().describe('New tag'),
+            tags: z.array(z.string()).optional().describe('New array of host tags'),
+            pinnedPeerCertSha256: z.string().optional().describe('New pinned peer certificate SHA256'),
+            verifyPeerCertByName: z.boolean().optional().describe('New verify peer certificate by name'),
+            mihomoIpVersion: z.enum(['ipv4', 'ipv6', 'dual']).optional().describe('New Mihomo IP version configuration'),
             serverDescription: z
                 .string()
                 .optional()

@@ -1,5 +1,6 @@
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { RemnawaveClient } from '../client/index.js';
+import { sanitizeData } from '../tools/helpers.js';
 
 export function registerAllResources(
     server: McpServer,
@@ -20,7 +21,7 @@ export function registerAllResources(
                     {
                         uri: 'remnawave://stats',
                         mimeType: 'application/json',
-                        text: JSON.stringify(stats, null, 2),
+                        text: JSON.stringify(sanitizeData(stats), null, 2),
                     },
                 ],
             };
@@ -41,7 +42,7 @@ export function registerAllResources(
                     {
                         uri: 'remnawave://nodes',
                         mimeType: 'application/json',
-                        text: JSON.stringify(nodes, null, 2),
+                        text: JSON.stringify(sanitizeData(nodes), null, 2),
                     },
                 ],
             };
@@ -62,7 +63,7 @@ export function registerAllResources(
                     {
                         uri: 'remnawave://health',
                         mimeType: 'application/json',
-                        text: JSON.stringify(health, null, 2),
+                        text: JSON.stringify(sanitizeData(health), null, 2),
                     },
                 ],
             };
@@ -86,7 +87,7 @@ export function registerAllResources(
                     {
                         uri: uri.href,
                         mimeType: 'application/json',
-                        text: JSON.stringify(user, null, 2),
+                        text: JSON.stringify(sanitizeData(user), null, 2),
                     },
                 ],
             };

@@ -81,6 +81,18 @@ export function registerNodeTools(server: McpServer, client: RemnawaveClient, re
                 .number()
                 .optional()
                 .describe('Traffic consumption multiplier'),
+            nodeConsumptionMultiplier: z
+                .number()
+                .optional()
+                .describe('Node traffic consumption multiplier'),
+            proxyUrl: z
+                .string()
+                .optional()
+                .describe('Node proxy URL'),
+            note: z
+                .string()
+                .optional()
+                .describe('Node note'),
             activeConfigProfileUuid: z
                 .string()
                 .describe('Config profile UUID to assign'),
@@ -113,6 +125,12 @@ export function registerNodeTools(server: McpServer, client: RemnawaveClient, re
                     body.notifyPercent = params.notifyPercent;
                 if (params.consumptionMultiplier !== undefined)
                     body.consumptionMultiplier = params.consumptionMultiplier;
+                if (params.nodeConsumptionMultiplier !== undefined)
+                    body.nodeConsumptionMultiplier = params.nodeConsumptionMultiplier;
+                if (params.proxyUrl !== undefined)
+                    body.proxyUrl = params.proxyUrl;
+                if (params.note !== undefined)
+                    body.note = params.note;
 
                 const result = await client.createNode(body);
                 return toolResult(result);
@@ -151,6 +169,18 @@ export function registerNodeTools(server: McpServer, client: RemnawaveClient, re
                 .number()
                 .optional()
                 .describe('New consumption multiplier'),
+            nodeConsumptionMultiplier: z
+                .number()
+                .optional()
+                .describe('New node traffic consumption multiplier'),
+            proxyUrl: z
+                .string()
+                .optional()
+                .describe('New node proxy URL'),
+            note: z
+                .string()
+                .optional()
+                .describe('New node note'),
         },
         async (params) => {
             try {

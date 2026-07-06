@@ -195,6 +195,10 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
                 .array(z.string())
                 .optional()
                 .describe('Array of internal squad UUIDs'),
+            externalSquadUuid: z
+                .string()
+                .optional()
+                .describe('External squad UUID'),
         },
         async (params) => {
             try {
@@ -240,6 +244,10 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
                 .array(z.string())
                 .optional()
                 .describe('Internal squad UUIDs'),
+            externalSquadUuid: z
+                .string()
+                .optional()
+                .describe('External squad UUID'),
         },
         async (params) => {
             try {
