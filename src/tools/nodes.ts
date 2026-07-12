@@ -1,9 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
-import { toolResult, toolError } from './helpers.js';
+import { toolResult, toolError, auditLog } from './helpers.js';
+import { Config } from '../config.js';
 
-export function registerNodeTools(server: McpServer, client: RemnawaveClient, readonly: boolean) {
+export function registerNodeTools(server: McpServer, client: RemnawaveClient, config: Config) {
     server.tool(
         'nodes_list',
         'List all Remnawave nodes',
@@ -48,7 +49,7 @@ export function registerNodeTools(server: McpServer, client: RemnawaveClient, re
         },
     );
 
-    if (readonly) return;
+    if (config.readonly) return;
 
     server.tool(
         'nodes_create',
@@ -56,7 +57,7 @@ export function registerNodeTools(server: McpServer, client: RemnawaveClient, re
         {
             name: z.string().describe('Node name'),
             address: z.string().describe('Node address (IP or hostname)'),
-            port: z.number().optional().describe('Node port'),
+            port: z.number().int().min(1).max(65535).optional().describe('Node port'),
             countryCode: z
                 .string()
                 .optional()
@@ -147,7 +148,7 @@ export function registerNodeTools(server: McpServer, client: RemnawaveClient, re
             uuid: z.string().describe('Node UUID to update'),
             name: z.string().optional().describe('New node name'),
             address: z.string().optional().describe('New address'),
-            port: z.number().optional().describe('New port'),
+            port: z.number().int().min(1).max(65535).optional().describe('New port'),
             countryCode: z.string().optional().describe('New country code'),
             isTrafficTrackingActive: z
                 .boolean()
@@ -259,19 +260,23 @@ export function registerNodeTools(server: McpServer, client: RemnawaveClient, re
         },
     );
 
-    server.tool(
-        'nodes_restart_all',
-        'Restart all nodes',
-        {},
-        async () => {
-            try {
-                const result = await client.restartAllNodes();
-                return toolResult(result);
-            } catch (e) {
-                return toolError(e);
-            }
-        },
-    );
+    // Fleet-wide restart: gated behind the destructive opt-in.
+    if (config.allowDestructive) {
+        server.tool(
+            'nodes_restart_all',
+            'Restart all nodes',
+            {},
+            async () => {
+                try {
+                    auditLog('nodes_restart_all invoked (all nodes)');
+                    const result = await client.restartAllNodes();
+                    return toolResult(result);
+                } catch (e) {
+                    return toolError(e);
+                }
+            },
+        );
+    }
 
     server.tool(
         'nodes_reset_traffic',
@@ -306,6 +311,8 @@ export function registerNodeTools(server: McpServer, client: RemnawaveClient, re
             }
         },
     );
+
+    if (!config.allowDestructive) return;
 
     server.tool(
         'nodes_bulk_profile_modification',

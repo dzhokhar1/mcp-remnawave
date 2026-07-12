@@ -2,8 +2,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
 import { toolResult, toolError } from './helpers.js';
+import { Config } from '../config.js';
 
-export function registerExternalSquadTools(server: McpServer, client: RemnawaveClient, readonly: boolean) {
+export function registerExternalSquadTools(server: McpServer, client: RemnawaveClient, config: Config) {
     server.tool('external_squads_list', 'List all external squads', {}, async () => {
         try { return toolResult(await client.getExternalSquads()); } catch (e) { return toolError(e); }
     });
@@ -14,7 +15,7 @@ export function registerExternalSquadTools(server: McpServer, client: RemnawaveC
         try { return toolResult(await client.getExternalSquadByUuid(uuid)); } catch (e) { return toolError(e); }
     });
 
-    if (readonly) return;
+    if (config.readonly) return;
 
     server.tool('external_squads_create', 'Create a new external squad', {
         name: z.string().describe('Squad name'),

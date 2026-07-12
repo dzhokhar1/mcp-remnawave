@@ -22,7 +22,7 @@ MCP server ([Model Context Protocol](https://modelcontextprotocol.io)) providing
 - **153 tools** — full management of users, nodes, hosts, subscriptions, squads, HWID, config profiles, inbounds, API tokens, billing, snippets, external squads, settings, subscription page configs, node plugins, IP control, and metadata
 - **3 resources** — real-time panel stats, node status, health checks
 - **5 prompts** — guided workflows for common tasks
-- **Readonly mode** — restrict to 69 read-only tools for safe monitoring
+- **Least-privilege by default** — read-only out of the box (~59 tools); write and high-risk tiers unlock via explicit capability flags (see Security model)
 - **Caddy support** — `X-Api-Key` header for panels behind Caddy with custom path
 - **Type-safe** — built on [@remnawave/backend-contract](https://www.npmjs.com/package/@remnawave/backend-contract) for API route validation
 - **stdio transport** — works with Claude Desktop, Cursor, Windsurf, and any MCP-compatible client
@@ -45,13 +45,21 @@ npm run build
 
 Create a `.env` file or pass environment variables:
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `REMNAWAVE_BASE_URL` | Yes | Panel URL (e.g. `https://vpn.example.com`) |
-| `REMNAWAVE_API_TOKEN` | Yes | API token from panel settings |
-| `REMNAWAVE_API_KEY` | No | API key for Caddy reverse proxy authentication |
-| `REMNAWAVE_COOKIE` | No | Cookie header for panels protected by reverse proxy cookie auth (e.g. `SECRET_KEY=SECRET_KEY`) |
-| `REMNAWAVE_READONLY` | No | Set to `true` to enable readonly mode |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `REMNAWAVE_BASE_URL` | Yes | — | Panel URL. **Must be `https://`** (loopback `http://` is allowed). |
+| `REMNAWAVE_API_TOKEN` | Yes | — | **Full-admin** API token from panel settings. Treat as a panel-takeover credential (see Security below). |
+| `REMNAWAVE_API_KEY` | No | — | API key for Caddy reverse proxy authentication |
+| `REMNAWAVE_COOKIE` | No | — | Cookie header for panels protected by reverse proxy cookie auth (e.g. `SECRET_KEY=SECRET_KEY`) |
+| `REMNAWAVE_READONLY` | No | `true` | Master gate. `true` = only read/list tools, and the client blocks all non-GET requests. Set `false` to enable ordinary create/update/delete. |
+| `REMNAWAVE_ALLOW_DESTRUCTIVE` | No | `false` | Enable bulk / whole-fleet ops (bulk delete, `*_bulk_all_*`, `nodes_restart_all`, `hosts_bulk_*`). |
+| `REMNAWAVE_ALLOW_TOKEN_ADMIN` | No | `false` | Enable creating/deleting panel API tokens. |
+| `REMNAWAVE_ALLOW_SETTINGS_WRITE` | No | `false` | Enable `settings_update`. |
+| `REMNAWAVE_ALLOW_KEYGEN` | No | `false` | Enable node `SECRET_KEY` / X25519 key generation (returns secret material). |
+| `REMNAWAVE_ALLOW_SECRETS_EXPORT` | No | `false` | Enable raw subscription / connection-key export (returns live VPN credentials). |
+| `REMNAWAVE_ALLOW_PII` | No | `false` | Enable fetching real client IP addresses. |
+| `REMNAWAVE_ALLOW_PLUGIN_EXEC` | No | `false` | Enable node-plugin execution and torrent-report truncation. |
+| `REMNAWAVE_ALLOW_INSECURE_HTTP` | No | `false` | Permit a non-loopback `http://` base URL (**insecure** — sends the admin token in cleartext). |
 
 ```env
 REMNAWAVE_BASE_URL=https://vpn.example.com
@@ -81,34 +89,49 @@ REMNAWAVE_COOKIE=SECRET_KEY=SECRET_KEY
 
 The `Cookie` header will be added to every request automatically.
 
-### Readonly Mode
+### Security model
 
-Set `REMNAWAVE_READONLY=true` to disable all write operations (create, update, delete, enable, disable, restart, revoke, reset). Only read/list tools will be registered.
+This server drives a Remnawave panel with a **full-admin** token and exposes those
+capabilities to an LLM. Because an LLM can be steered by prompt injection (including
+data an end user places in their own `username` / `description` / `tag`), the tool
+surface is **least-privilege by default** and unlocked in explicit, documented tiers.
 
-Useful for monitoring dashboards or shared environments where you want to prevent accidental changes.
+**Defaults are fail-closed.** Out of the box the server is read-only and every
+high-risk capability is off (~59 read/list tools). You opt into exactly what a
+deployment needs:
 
-In readonly mode, the available tools are reduced from 153 to 69:
+| Mode | Env | Tools exposed |
+|------|-----|---------------|
+| Read-only (default) | *(none)* | Read/list only (~59). Client also blocks every non-GET request. |
+| Write | `REMNAWAVE_READONLY=false` | + ordinary single-entity create/update/delete (~120). |
+| + Destructive | `REMNAWAVE_ALLOW_DESTRUCTIVE=true` | + bulk / whole-fleet ops. |
+| + Token admin | `REMNAWAVE_ALLOW_TOKEN_ADMIN=true` | + create/delete API tokens. |
+| + Settings write | `REMNAWAVE_ALLOW_SETTINGS_WRITE=true` | + `settings_update`. |
+| + Keygen | `REMNAWAVE_ALLOW_KEYGEN=true` | + node `SECRET_KEY` / X25519 generation. |
+| + Secrets export | `REMNAWAVE_ALLOW_SECRETS_EXPORT=true` | + raw subscription / connection keys. |
+| + PII | `REMNAWAVE_ALLOW_PII=true` | + fetch real client IPs. |
+| + Plugin exec | `REMNAWAVE_ALLOW_PLUGIN_EXEC=true` | + node-plugin execution / report truncation. |
 
-| Category | Available tools |
-|----------|----------------|
-| Users (10) | `users_list`, `users_get`, `users_get_by_username`, `users_get_by_short_uuid`, `users_get_by_telegram_id`, `users_get_by_email`, `users_get_by_tag`, `users_get_by_subscription_uuid`, `users_tags_list`, `users_resolve` |
-| Nodes (3) | `nodes_list`, `nodes_get`, `nodes_tags_list` |
-| Hosts (3) | `hosts_list`, `hosts_get`, `hosts_tags_list` |
-| System (10) | all tools (read-only by nature) |
-| Subscriptions (10) | all tools (read-only by nature) |
-| Config Profiles & Inbounds (5) | `config_profiles_list`, `config_profiles_get`, `inbounds_list`, `config_profiles_get_inbounds`, `config_profiles_get_computed_config` |
-| Internal Squads (2) | `squads_list`, `squads_accessible_nodes` |
-| HWID (4) | `hwid_devices_list`, `hwid_devices_list_all`, `hwid_stats`, `hwid_top_users` |
-| API Tokens (1) | `api_tokens_list` |
-| Keygen (1) | `keygen_get` |
-| Infra Billing (4) | `billing_providers_list`, `billing_provider_get`, `billing_nodes_list`, `billing_history_list` |
-| Snippets (1) | `snippets_list` |
-| External Squads (2) | `external_squads_list`, `external_squads_get` |
-| Settings (1) | `settings_get` |
-| Sub Page Configs (2) | `sub_page_configs_list`, `sub_page_configs_get` |
-| Node Plugins (4) | `node_plugins_list`, `node_plugins_get`, `node_plugins_torrent_reports`, `node_plugins_torrent_stats` |
-| IP Control (4) | `ip_control_fetch_ips`, `ip_control_get_fetch_ips_result`, `ip_control_fetch_users_ips`, `ip_control_get_fetch_users_ips_result` |
-| Metadata (2) | `metadata_node_get`, `metadata_user_get` |
+Additional protections built into the server:
+
+- **Secret redaction** — tool/resource output is scrubbed by key name **and** value
+  shape (proxy URIs, JWTs, credentials-in-URLs), fully masked (no partial reveal),
+  on both success and error paths. Tools that *exist to produce* secrets
+  (keygen/x25519/connection-keys, gated above) return raw material by design.
+- **readonly enforced at the transport** — the HTTP client rejects any non-GET
+  request in readonly mode, independent of which tools were registered.
+- **https-only** — the admin token is never sent over cleartext `http://` (loopback
+  excepted; override with `REMNAWAVE_ALLOW_INSECURE_HTTP=true`).
+- **Hardened requests** — per-request timeout, redirects refused (so a hostile
+  `Location` cannot exfiltrate the `X-Api-Key`), path parameters URL-encoded,
+  response `Content-Type` validated, pagination bounded.
+- **Untrusted-data framing + audit log** — API data is labeled untrusted for the
+  model, destructive/credential/settings/plugin calls are logged to stderr, and the
+  bundled prompts never auto-execute destructive actions or print live credentials.
+
+> Treat `readonly` and the capability flags as defense-in-depth. The real security
+> boundary is the **scope of the panel token** you provision — prefer the most
+> limited token the panel supports, and protect the `.env` (`chmod 600`).
 
 ### Usage with Claude Desktop
 
@@ -501,7 +524,7 @@ MCP-сервер ([Model Context Protocol](https://modelcontextprotocol.io)), п
 - **153 инструмента** — полное управление пользователями, нодами, хостами, подписками, группами, HWID, конфиг-профилями, inbounds, API-токенами, биллингом, сниппетами, внешними группами, настройками, страницами подписок, плагинами нод, IP-контролем и метаданными
 - **3 ресурса** — статистика панели, статус нод, проверка здоровья в реальном времени
 - **5 промптов** — пошаговые сценарии для типичных задач
-- **Readonly-режим** — ограничение до 69 инструментов только для чтения
+- **Least-privilege по умолчанию** — из коробки только чтение (~59 инструментов); запись и опасные уровни открываются явными capability-флагами (см. «Модель безопасности»)
 - **Поддержка Caddy** — заголовок `X-Api-Key` для панелей за Caddy с кастомным путём
 - **Type-safe** — построен на [@remnawave/backend-contract](https://www.npmjs.com/package/@remnawave/backend-contract) для валидации API-маршрутов
 - **stdio транспорт** — работает с Claude Desktop, Cursor, Windsurf и любым MCP-совместимым клиентом
@@ -524,13 +547,21 @@ npm run build
 
 Создайте файл `.env` или передайте переменные окружения:
 
-| Переменная | Обязательная | Описание |
-|------------|-------------|----------|
-| `REMNAWAVE_BASE_URL` | Да | URL панели (например `https://vpn.example.com`) |
-| `REMNAWAVE_API_TOKEN` | Да | API-токен из настроек панели |
-| `REMNAWAVE_API_KEY` | Нет | API-ключ для аутентификации через Caddy reverse proxy |
-| `REMNAWAVE_COOKIE` | Нет | Заголовок Cookie для панелей, защищенных авторизацией через куки (например, `SECRET_KEY=SECRET_KEY`) |
-| `REMNAWAVE_READONLY` | Нет | `true` для включения режима только чтения |
+| Переменная | Обяз. | По умолч. | Описание |
+|------------|-------|-----------|----------|
+| `REMNAWAVE_BASE_URL` | Да | — | URL панели. **Обязательно `https://`** (loopback `http://` разрешён). |
+| `REMNAWAVE_API_TOKEN` | Да | — | **Full-admin** API-токен панели. По сути — учётка полного захвата (см. «Модель безопасности»). |
+| `REMNAWAVE_API_KEY` | Нет | — | API-ключ для аутентификации через Caddy reverse proxy |
+| `REMNAWAVE_COOKIE` | Нет | — | Заголовок Cookie для панелей за куки-авторизацией (например `SECRET_KEY=SECRET_KEY`) |
+| `REMNAWAVE_READONLY` | Нет | `true` | Главный гейт. `true` = только чтение, и клиент блокирует любые не-GET запросы. `false` — включить обычные create/update/delete. |
+| `REMNAWAVE_ALLOW_DESTRUCTIVE` | Нет | `false` | Bulk / операции над всем флотом (`*_bulk_all_*`, `nodes_restart_all`, `hosts_bulk_*`). |
+| `REMNAWAVE_ALLOW_TOKEN_ADMIN` | Нет | `false` | Создание/удаление API-токенов панели. |
+| `REMNAWAVE_ALLOW_SETTINGS_WRITE` | Нет | `false` | `settings_update`. |
+| `REMNAWAVE_ALLOW_KEYGEN` | Нет | `false` | Генерация node `SECRET_KEY` / X25519 (возвращает секреты). |
+| `REMNAWAVE_ALLOW_SECRETS_EXPORT` | Нет | `false` | Экспорт raw-подписок / connection keys (живые VPN-креды). |
+| `REMNAWAVE_ALLOW_PII` | Нет | `false` | Получение реальных IP клиентов. |
+| `REMNAWAVE_ALLOW_PLUGIN_EXEC` | Нет | `false` | Выполнение node-плагинов и очистка torrent-отчётов. |
+| `REMNAWAVE_ALLOW_INSECURE_HTTP` | Нет | `false` | Разрешить не-loopback `http://` (**небезопасно** — токен уходит открытым текстом). |
 
 ```env
 REMNAWAVE_BASE_URL=https://vpn.example.com
@@ -560,34 +591,50 @@ REMNAWAVE_COOKIE=SECRET_KEY=SECRET_KEY
 
 Заголовок `Cookie` будет автоматически добавляться к каждому запросу.
 
-### Режим Readonly
+### Модель безопасности
 
-Установите `REMNAWAVE_READONLY=true`, чтобы отключить все операции записи (создание, обновление, удаление, включение, отключение, перезапуск, отзыв, сброс). Будут зарегистрированы только инструменты чтения.
+Сервер управляет панелью Remnawave **full-admin токеном** и отдаёт эти возможности
+LLM. Поскольку LLM управляем инъекцией промпта (в т.ч. через данные, которые конечный
+пользователь задаёт в своих `username` / `description` / `tag`), поверхность
+инструментов построена по принципу **least-privilege по умолчанию** и открывается
+явными задокументированными уровнями.
 
-Полезно для мониторинговых дашбордов или общих окружений, где нужно исключить случайные изменения.
+**Дефолты fail-closed.** Из коробки сервер работает только на чтение, все опасные
+возможности выключены (~59 инструментов чтения). Включаете ровно то, что нужно:
 
-В readonly-режиме количество доступных инструментов сокращается с 153 до 69:
+| Режим | Env | Доступные инструменты |
+|-------|-----|-----------------------|
+| Только чтение (дефолт) | *(ничего)* | Только чтение (~59). Клиент также блокирует любые не-GET запросы. |
+| Запись | `REMNAWAVE_READONLY=false` | + обычные одиночные create/update/delete (~120). |
+| + Destructive | `REMNAWAVE_ALLOW_DESTRUCTIVE=true` | + bulk / операции над всем флотом. |
+| + Token admin | `REMNAWAVE_ALLOW_TOKEN_ADMIN=true` | + создание/удаление API-токенов. |
+| + Settings write | `REMNAWAVE_ALLOW_SETTINGS_WRITE=true` | + `settings_update`. |
+| + Keygen | `REMNAWAVE_ALLOW_KEYGEN=true` | + генерация node `SECRET_KEY` / X25519. |
+| + Secrets export | `REMNAWAVE_ALLOW_SECRETS_EXPORT=true` | + raw-подписки / connection keys. |
+| + PII | `REMNAWAVE_ALLOW_PII=true` | + получение реальных IP клиентов. |
+| + Plugin exec | `REMNAWAVE_ALLOW_PLUGIN_EXEC=true` | + выполнение node-плагинов / очистка отчётов. |
 
-| Категория | Доступные инструменты |
-|-----------|----------------------|
-| Пользователи (10) | `users_list`, `users_get`, `users_get_by_username`, `users_get_by_short_uuid`, `users_get_by_telegram_id`, `users_get_by_email`, `users_get_by_tag`, `users_get_by_subscription_uuid`, `users_tags_list`, `users_resolve` |
-| Ноды (3) | `nodes_list`, `nodes_get`, `nodes_tags_list` |
-| Хосты (3) | `hosts_list`, `hosts_get`, `hosts_tags_list` |
-| Система (10) | все инструменты (только чтение по природе) |
-| Подписки (10) | все инструменты (только чтение по природе) |
-| Конфиг-профили и Inbounds (5) | `config_profiles_list`, `config_profiles_get`, `inbounds_list`, `config_profiles_get_inbounds`, `config_profiles_get_computed_config` |
-| Внутренние группы (2) | `squads_list`, `squads_accessible_nodes` |
-| HWID (4) | `hwid_devices_list`, `hwid_devices_list_all`, `hwid_stats`, `hwid_top_users` |
-| API-токены (1) | `api_tokens_list` |
-| Keygen (1) | `keygen_get` |
-| Биллинг (4) | `billing_providers_list`, `billing_provider_get`, `billing_nodes_list`, `billing_history_list` |
-| Сниппеты (1) | `snippets_list` |
-| Внешние группы (2) | `external_squads_list`, `external_squads_get` |
-| Настройки (1) | `settings_get` |
-| Страницы подписок (2) | `sub_page_configs_list`, `sub_page_configs_get` |
-| Плагины нод (4) | `node_plugins_list`, `node_plugins_get`, `node_plugins_torrent_reports`, `node_plugins_torrent_stats` |
-| IP-контроль (4) | `ip_control_fetch_ips`, `ip_control_get_fetch_ips_result`, `ip_control_fetch_users_ips`, `ip_control_get_fetch_users_ips_result` |
-| Метаданные (2) | `metadata_node_get`, `metadata_user_get` |
+Дополнительные защиты в сервере:
+
+- **Редакция секретов** — вывод инструментов/ресурсов чистится и по имени ключа, и
+  по форме значения (proxy-URI, JWT, креды в URL), полностью маскируется (без
+  частичного показа), на путях success и error. Инструменты, которые *и существуют
+  для выдачи* секретов (keygen/x25519/connection-keys, за флагами выше), возвращают
+  raw-материал намеренно.
+- **readonly на уровне транспорта** — HTTP-клиент отклоняет любой не-GET запрос в
+  readonly, независимо от зарегистрированных инструментов.
+- **Только https** — admin-токен не уходит по открытому `http://` (кроме loopback;
+  переопределяется `REMNAWAVE_ALLOW_INSECURE_HTTP=true`).
+- **Жёсткие запросы** — таймаут, запрет редиректов (враждебный `Location` не
+  утащит `X-Api-Key`), URL-кодирование path-параметров, проверка `Content-Type`,
+  ограниченная пагинация.
+- **Метка недоверенных данных + аудит** — данные API помечаются для модели как
+  недоверенные, деструктив/креды/settings/plugin логируются в stderr, а встроенные
+  промпты не выполняют деструктив автоматически и не печатают живые креды.
+
+> Считайте `readonly` и capability-флаги защитой в глубину. Настоящая граница
+> безопасности — **объём прав самого токена панели**: используйте максимально
+> ограниченный токен и защитите `.env` (`chmod 600`).
 
 ### Использование с Claude Desktop
 

@@ -1,12 +1,31 @@
 services:
   remnawave-mcp:
     build: .
-    ports:
-      - "3100:3100"
+    # stdio transport only — no ports are published (the server never binds a socket).
     environment:
       - REMNAWAVE_BASE_URL=${REMNAWAVE_BASE_URL}
       - REMNAWAVE_API_TOKEN=${REMNAWAVE_API_TOKEN}
       - REMNAWAVE_API_KEY=${REMNAWAVE_API_KEY:-}
       - REMNAWAVE_COOKIE=${REMNAWAVE_COOKIE:-}
-      - REMNAWAVE_READONLY=${REMNAWAVE_READONLY:-false}
+      # Secure defaults: read-only, every high-risk capability off.
+      - REMNAWAVE_READONLY=${REMNAWAVE_READONLY:-true}
+      - REMNAWAVE_ALLOW_DESTRUCTIVE=${REMNAWAVE_ALLOW_DESTRUCTIVE:-false}
+      - REMNAWAVE_ALLOW_TOKEN_ADMIN=${REMNAWAVE_ALLOW_TOKEN_ADMIN:-false}
+      - REMNAWAVE_ALLOW_SETTINGS_WRITE=${REMNAWAVE_ALLOW_SETTINGS_WRITE:-false}
+      - REMNAWAVE_ALLOW_KEYGEN=${REMNAWAVE_ALLOW_KEYGEN:-false}
+      - REMNAWAVE_ALLOW_SECRETS_EXPORT=${REMNAWAVE_ALLOW_SECRETS_EXPORT:-false}
+      - REMNAWAVE_ALLOW_PII=${REMNAWAVE_ALLOW_PII:-false}
+      - REMNAWAVE_ALLOW_PLUGIN_EXEC=${REMNAWAVE_ALLOW_PLUGIN_EXEC:-false}
+      - REMNAWAVE_ALLOW_INSECURE_HTTP=${REMNAWAVE_ALLOW_INSECURE_HTTP:-false}
+    # Runtime hardening.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    user: "node"
+    mem_limit: 256m
+    pids_limit: 128
     restart: unless-stopped

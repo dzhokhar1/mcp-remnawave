@@ -1,11 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
-import { toolResult, toolError } from './helpers.js';
+import { toolResult, toolResultRaw, toolError, auditLog } from './helpers.js';
+import { Config } from '../config.js';
 
 export function registerSystemTools(
     server: McpServer,
     client: RemnawaveClient,
+    config: Config,
 ) {
     server.tool(
         'system_stats',
@@ -91,19 +93,23 @@ export function registerSystemTools(
         },
     );
 
-    server.tool(
-        'system_generate_x25519',
-        'Generate X25519 key pair for VLESS Reality',
-        {},
-        async () => {
-            try {
-                const result = await client.generateX25519();
-                return toolResult(result);
-            } catch (e) {
-                return toolError(e);
-            }
-        },
-    );
+    // Mints an X25519 private key for VLESS Reality. Off by default (returns
+    // secret material); enable with the keygen opt-in.
+    if (config.allowKeygen) {
+        server.tool(
+            'system_generate_x25519',
+            'Generate X25519 key pair for VLESS Reality',
+            {},
+            async () => {
+                try {
+                    auditLog('system_generate_x25519 invoked (X25519 keypair generated)');
+                    return toolResultRaw(await client.generateX25519());
+                } catch (e) {
+                    return toolError(e);
+                }
+            },
+        );
+    }
 
     server.tool(
         'auth_status',
@@ -133,19 +139,23 @@ export function registerSystemTools(
         },
     );
 
-    server.tool(
-        'system_srr_matcher',
-        'Test subscription request routing rules',
-        {
-            input: z.string().describe('Input string to test against SRR rules'),
-        },
-        async (params) => {
-            try {
-                const result = await client.testSrrMatcher(params);
-                return toolResult(result);
-            } catch (e) {
-                return toolError(e);
-            }
-        },
-    );
+    // POST-backed tester with a server-side side effect — treat as a write and
+    // keep it out of the readonly surface.
+    if (!config.readonly) {
+        server.tool(
+            'system_srr_matcher',
+            'Test subscription request routing rules',
+            {
+                input: z.string().describe('Input string to test against SRR rules'),
+            },
+            async (params) => {
+                try {
+                    const result = await client.testSrrMatcher(params);
+                    return toolResult(result);
+                } catch (e) {
+                    return toolError(e);
+                }
+            },
+        );
+    }
 }

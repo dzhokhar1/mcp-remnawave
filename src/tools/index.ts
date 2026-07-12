@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { RemnawaveClient } from '../client/index.js';
+import { Config } from '../config.js';
 import { registerUserTools } from './users.js';
 import { registerNodeTools } from './nodes.js';
 import { registerHostTools } from './hosts.js';
@@ -19,23 +20,27 @@ import { registerNodePluginTools } from './node-plugins.js';
 import { registerIpControlTools } from './ip-control.js';
 import { registerMetadataTools } from './metadata.js';
 
-export function registerAllTools(server: McpServer, client: RemnawaveClient, readonly: boolean) {
-    registerUserTools(server, client, readonly);
-    registerNodeTools(server, client, readonly);
-    registerHostTools(server, client, readonly);
-    registerSystemTools(server, client);
-    registerSubscriptionTools(server, client);
-    registerInboundTools(server, client, readonly);
-    registerSquadTools(server, client, readonly);
-    registerHwidTools(server, client, readonly);
-    registerApiTokenTools(server, client, readonly);
-    registerKeygenTools(server, client);
-    registerInfraBillingTools(server, client, readonly);
-    registerSnippetTools(server, client, readonly);
-    registerExternalSquadTools(server, client, readonly);
-    registerSettingsTools(server, client, readonly);
-    registerSubPageConfigTools(server, client, readonly);
-    registerNodePluginTools(server, client, readonly);
-    registerIpControlTools(server, client, readonly);
-    registerMetadataTools(server, client, readonly);
+export function registerAllTools(
+    server: McpServer,
+    client: RemnawaveClient,
+    config: Config,
+) {
+    registerUserTools(server, client, config);
+    registerNodeTools(server, client, config);
+    registerHostTools(server, client, config);
+    registerSystemTools(server, client, config);
+    registerSubscriptionTools(server, client, config);
+    registerInboundTools(server, client, config);
+    registerSquadTools(server, client, config);
+    registerHwidTools(server, client, config);
+    registerApiTokenTools(server, client, config);
+    registerKeygenTools(server, client, config);
+    registerInfraBillingTools(server, client, config);
+    registerSnippetTools(server, client, config);
+    registerExternalSquadTools(server, client, config);
+    registerSettingsTools(server, client, config);
+    registerSubPageConfigTools(server, client, config);
+    registerNodePluginTools(server, client, config);
+    registerIpControlTools(server, client, config);
+    registerMetadataTools(server, client, config);
 }

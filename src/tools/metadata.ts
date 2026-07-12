@@ -2,8 +2,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
 import { toolResult, toolError } from './helpers.js';
+import { Config } from '../config.js';
 
-export function registerMetadataTools(server: McpServer, client: RemnawaveClient, readonly: boolean) {
+export function registerMetadataTools(server: McpServer, client: RemnawaveClient, config: Config) {
     server.tool('metadata_node_get', 'Get metadata for a specific node', {
         uuid: z.string().describe('Node UUID'),
     }, async ({ uuid }) => {
@@ -16,7 +17,7 @@ export function registerMetadataTools(server: McpServer, client: RemnawaveClient
         try { return toolResult(await client.getUserMetadata(uuid)); } catch (e) { return toolError(e); }
     });
 
-    if (readonly) return;
+    if (config.readonly) return;
 
     server.tool('metadata_node_upsert', 'Create or update metadata for a node', {
         uuid: z.string().describe('Node UUID'),
