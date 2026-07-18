@@ -136,4 +136,26 @@ export function registerSquadTools(
             }
         },
     );
+
+    server.tool(
+        'squads_reorder',
+        'Reorder internal squads by view position (Remnawave 2.8.x)',
+        {
+            items: z
+                .array(
+                    z.object({
+                        uuid: z.string().describe('Squad UUID'),
+                        viewPosition: z.number().int().min(0).describe('New position'),
+                    }),
+                )
+                .describe('Squads with their new positions'),
+        },
+        async (params) => {
+            try {
+                return toolResult(await client.reorderInternalSquads(params));
+            } catch (e) {
+                return toolError(e);
+            }
+        },
+    );
 }

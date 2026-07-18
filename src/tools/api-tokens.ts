@@ -9,6 +9,10 @@ export function registerApiTokenTools(server: McpServer, client: RemnawaveClient
         try { return toolResult(await client.getApiTokens()); } catch (e) { return toolError(e); }
     });
 
+    server.tool('api_tokens_scopes', 'List available API token scopes (Remnawave 2.8.x)', {}, async () => {
+        try { return toolResult(await client.getApiTokenScopes()); } catch (e) { return toolError(e); }
+    });
+
     // Panel API token lifecycle mints/removes durable full-admin credentials that
     // outlive this process — a model-invokable persistence/lockout primitive. Kept
     // off the LLM surface entirely unless the operator explicitly opts in.

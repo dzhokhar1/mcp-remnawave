@@ -149,6 +149,36 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, co
     );
 
     server.tool(
+        'users_accessible_nodes',
+        'List nodes accessible to a specific user (Remnawave 2.8.x)',
+        {
+            uuid: z.string().describe('User UUID'),
+        },
+        async ({ uuid }) => {
+            try {
+                return toolResult(await client.getUserAccessibleNodes(uuid));
+            } catch (e) {
+                return toolError(e);
+            }
+        },
+    );
+
+    server.tool(
+        'users_subscription_request_history',
+        'Get subscription request history for a specific user (Remnawave 2.8.x)',
+        {
+            uuid: z.string().describe('User UUID'),
+        },
+        async ({ uuid }) => {
+            try {
+                return toolResult(await client.getUserSubscriptionRequestHistory(uuid));
+            } catch (e) {
+                return toolError(e);
+            }
+        },
+    );
+
+    server.tool(
         'users_resolve',
         'Search and resolve users by query',
         {
