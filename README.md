@@ -7,9 +7,13 @@
 <a id="english"></a>
 
 > [!NOTE]
-> This repository is a fork of [TrackLine/mcp-remnawave](https://github.com/TrackLine/mcp-remnawave).
+> A **security-hardened, drop-in-compatible** fork of [TrackLine/mcp-remnawave](https://github.com/TrackLine/mcp-remnawave). Same tool surface and configuration — safer defaults and broader deployment support.
 >
-> **Main Difference:** This fork adds support for cookie-based authentication (`REMNAWAVE_COOKIE` / `REMNAWAVE_COOKIES`), allowing the MCP server to successfully communicate with Remnawave panels deployed behind reverse proxies with cookie protection (such as `eGamesAPI/remnawave-reverse-proxy` or setups requiring a secret key like `SECRET_KEY=SECRET_KEY`).
+> **What this fork adds on top of upstream:**
+> - **Least-privilege by default** — read-only out of the box (~59 tools); write and high-risk capabilities unlock only via explicit, documented flags (see [Security model](#security-model)).
+> - **Fail-closed secret redaction** — tool and resource output is scrubbed by key name *and* value shape, on both success and error paths, so panel secrets and live VPN credentials never leak into the LLM context.
+> - **Cookie / reverse-proxy auth** (`REMNAWAVE_COOKIE` / `REMNAWAVE_COOKIES`) — reach panels behind cookie-protected reverse proxies (e.g. `eGamesAPI/remnawave-reverse-proxy` with a `SECRET_KEY=SECRET_KEY`-style secret), which upstream does not support.
+> - **Hardened HTTP client** — HTTPS-only base URL by default; non-GET requests blocked entirely while in read-only mode.
 
 ## MCP Server for Remnawave Panel
 
@@ -35,7 +39,7 @@ MCP server ([Model Context Protocol](https://modelcontextprotocol.io)) providing
 ### Installation
 
 ```bash
-git clone https://github.com/TrackLine/mcp-remnawave.git
+git clone https://github.com/dzhokhar1/mcp-remnawave.git
 cd mcp-remnawave
 npm install
 npm run build
@@ -509,9 +513,13 @@ MIT
 <a id="русский"></a>
 
 > [!NOTE]
-> Этот репозиторий является форком [TrackLine/mcp-remnawave](https://github.com/TrackLine/mcp-remnawave).
+> **Security-hardened, drop-in-совместимый** форк [TrackLine/mcp-remnawave](https://github.com/TrackLine/mcp-remnawave). Тот же набор инструментов и конфигурация — но безопаснее по умолчанию и с более широкой поддержкой развёртываний.
 >
-> **Основное отличие:** В этом форке добавлена поддержка авторизации через Cookie (`REMNAWAVE_COOKIE` / `REMNAWAVE_COOKIES`). Это позволяет MCP-серверу взаимодействовать с панелями Remnawave, развернутыми за реверс-прокси с защитой по кукам (например, при использовании `eGamesAPI/remnawave-reverse-proxy` с секретным ключом вида `SECRET_KEY=SECRET_KEY`), что оригинальным репозиторием не поддерживается.
+> **Что этот форк добавляет поверх оригинала:**
+> - **Least-privilege по умолчанию** — из коробки только чтение (~59 инструментов); запись и опасные возможности открываются лишь явными задокументированными флагами (см. [«Модель безопасности»](#модель-безопасности)).
+> - **Fail-closed редакция секретов** — вывод инструментов и ресурсов маскируется по имени ключа *и* по форме значения, на путях успеха и ошибки, поэтому секреты панели и живые VPN-креды не утекают в контекст LLM.
+> - **Cookie / reverse-proxy авторизация** (`REMNAWAVE_COOKIE` / `REMNAWAVE_COOKIES`) — работа с панелями за реверс-прокси с защитой по кукам (например, `eGamesAPI/remnawave-reverse-proxy` с секретом вида `SECRET_KEY=SECRET_KEY`), чего оригинал не поддерживает.
+> - **Харденинг HTTP-клиента** — в base URL по умолчанию только HTTPS; в read-only режиме не-GET запросы блокируются полностью.
 
 ## MCP-сервер для Remnawave Panel
 
@@ -537,7 +545,7 @@ MCP-сервер ([Model Context Protocol](https://modelcontextprotocol.io)), п
 ### Установка
 
 ```bash
-git clone https://github.com/TrackLine/mcp-remnawave.git
+git clone https://github.com/dzhokhar1/mcp-remnawave.git
 cd mcp-remnawave
 npm install
 npm run build
