@@ -2,11 +2,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
 import { toolResult, toolError } from './helpers.js';
+import { Config } from '../config.js';
 
 export function registerHwidTools(
     server: McpServer,
     client: RemnawaveClient,
-    readonly: boolean,
+    config: Config,
 ) {
     server.tool(
         'hwid_devices_list',
@@ -66,7 +67,7 @@ export function registerHwidTools(
         },
     );
 
-    if (readonly) return;
+    if (config.readonly) return;
 
     server.tool(
         'hwid_device_create',

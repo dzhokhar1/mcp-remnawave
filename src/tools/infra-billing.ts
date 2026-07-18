@@ -2,8 +2,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
 import { toolResult, toolError } from './helpers.js';
+import { Config } from '../config.js';
 
-export function registerInfraBillingTools(server: McpServer, client: RemnawaveClient, readonly: boolean) {
+export function registerInfraBillingTools(server: McpServer, client: RemnawaveClient, config: Config) {
     server.tool('billing_providers_list', 'List all infrastructure billing providers', {}, async () => {
         try { return toolResult(await client.getBillingProviders()); } catch (e) { return toolError(e); }
     });
@@ -22,7 +23,7 @@ export function registerInfraBillingTools(server: McpServer, client: RemnawaveCl
         try { return toolResult(await client.getBillingHistory()); } catch (e) { return toolError(e); }
     });
 
-    if (readonly) return;
+    if (config.readonly) return;
 
     server.tool('billing_provider_create', 'Create a new billing provider', {
         name: z.string().describe('Provider name'),

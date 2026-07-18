@@ -1,15 +1,16 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
-import { toolResult, toolError } from './helpers.js';
+import { toolResult, toolError, auditLog } from './helpers.js';
+import { Config } from '../config.js';
 
-export function registerUserTools(server: McpServer, client: RemnawaveClient, readonly: boolean) {
+export function registerUserTools(server: McpServer, client: RemnawaveClient, config: Config) {
     server.tool(
         'users_list',
         'List all Remnawave VPN users with pagination',
         {
-            start: z.number().default(0).describe('Offset for pagination'),
-            size: z.number().default(25).describe('Number of users to return'),
+            start: z.number().int().min(0).default(0).describe('Offset for pagination'),
+            size: z.number().int().min(1).max(500).default(25).describe('Number of users to return (max 500)'),
         },
         async ({ start, size }) => {
             try {
@@ -163,7 +164,7 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
         },
     );
 
-    if (readonly) return;
+    if (config.readonly) return;
 
     server.tool(
         'users_create',
@@ -339,6 +340,11 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
         },
     );
 
+    // Bulk / whole-fleet operations have catastrophic blast radius (a single call
+    // can delete every paying user), so the entire bulk tier is gated behind an
+    // explicit opt-in even in write mode. Deletes and all-users ops are audit-logged.
+    if (!config.allowDestructive) return;
+
     server.tool(
         'users_bulk_delete_by_status',
         'Bulk delete users by status',
@@ -347,6 +353,7 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
         },
         async (params) => {
             try {
+                auditLog(`users_bulk_delete_by_status status=${JSON.stringify(params.status)}`);
                 const result = await client.bulkDeleteUsersByStatus(params);
                 return toolResult(result);
             } catch (e) {
@@ -415,6 +422,7 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
         },
         async (params) => {
             try {
+                auditLog(`users_bulk_delete count=${(params.uuids as string[]).length}`);
                 const result = await client.bulkDeleteUsers(params);
                 return toolResult(result);
             } catch (e) {
@@ -445,7 +453,7 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
         'Bulk extend expiration date for selected users',
         {
             uuids: z.array(z.string()).describe('Array of user UUIDs'),
-            days: z.number().describe('Number of days to extend'),
+            days: z.number().int().min(1).max(3650).describe('Number of days to extend (1-3650)'),
         },
         async (params) => {
             try {
@@ -466,6 +474,7 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
         },
         async (params) => {
             try {
+                auditLog(`users_bulk_all_update ${JSON.stringify(params)}`);
                 const result = await client.bulkAllUpdateUsers(params);
                 return toolResult(result);
             } catch (e) {
@@ -480,6 +489,7 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
         {},
         async () => {
             try {
+                auditLog('users_bulk_all_reset_traffic invoked (all users)');
                 const result = await client.bulkAllResetUsersTraffic();
                 return toolResult(result);
             } catch (e) {
@@ -492,10 +502,11 @@ export function registerUserTools(server: McpServer, client: RemnawaveClient, re
         'users_bulk_all_extend_expiration',
         'Extend expiration date for ALL users',
         {
-            days: z.number().describe('Number of days to extend'),
+            days: z.number().int().min(1).max(3650).describe('Number of days to extend (1-3650)'),
         },
         async (params) => {
             try {
+                auditLog(`users_bulk_all_extend_expiration days=${JSON.stringify(params.days)}`);
                 const result = await client.bulkAllExtendUsersExpiration(params);
                 return toolResult(result);
             } catch (e) {

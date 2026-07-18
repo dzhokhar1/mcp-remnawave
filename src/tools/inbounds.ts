@@ -2,11 +2,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
 import { toolResult, toolError } from './helpers.js';
+import { Config } from '../config.js';
 
 export function registerInboundTools(
     server: McpServer,
     client: RemnawaveClient,
-    readonly: boolean,
+    config: Config,
 ) {
     server.tool(
         'config_profiles_list',
@@ -84,7 +85,7 @@ export function registerInboundTools(
         },
     );
 
-    if (readonly) return;
+    if (config.readonly) return;
 
     server.tool(
         'config_profiles_create',

@@ -1,11 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
-import { toolResult, toolError } from './helpers.js';
+import { toolResult, toolError, auditLog } from './helpers.js';
+import { Config } from '../config.js';
 
 const SUBSCRIPTION_TYPES = ['XRAY_JSON', 'XRAY_BASE64', 'MIHOMO', 'STASH', 'CLASH', 'SINGBOX'] as const;
 
-export function registerHostTools(server: McpServer, client: RemnawaveClient, readonly: boolean) {
+export function registerHostTools(server: McpServer, client: RemnawaveClient, config: Config) {
     server.tool(
         'hosts_list',
         'List all Remnawave hosts',
@@ -50,7 +51,7 @@ export function registerHostTools(server: McpServer, client: RemnawaveClient, re
         },
     );
 
-    if (readonly) return;
+    if (config.readonly) return;
 
     server.tool(
         'hosts_create',
@@ -58,7 +59,7 @@ export function registerHostTools(server: McpServer, client: RemnawaveClient, re
         {
             remark: z.string().describe('Host remark/name'),
             address: z.string().describe('Host address'),
-            port: z.number().describe('Host port'),
+            port: z.number().int().min(1).max(65535).describe('Host port'),
             configProfileUuid: z
                 .string()
                 .describe('Config profile UUID'),
@@ -160,7 +161,7 @@ export function registerHostTools(server: McpServer, client: RemnawaveClient, re
             uuid: z.string().describe('Host UUID to update'),
             remark: z.string().optional().describe('New remark/name'),
             address: z.string().optional().describe('New address'),
-            port: z.number().optional().describe('New port'),
+            port: z.number().int().min(1).max(65535).optional().describe('New port'),
             path: z.string().optional().describe('New URL path'),
             sni: z.string().optional().describe('New SNI'),
             host: z.string().optional().describe('New host header'),
@@ -233,6 +234,8 @@ export function registerHostTools(server: McpServer, client: RemnawaveClient, re
         },
     );
 
+    if (!config.allowDestructive) return;
+
     server.tool(
         'hosts_bulk_enable',
         'Bulk enable selected hosts',
@@ -256,7 +259,10 @@ export function registerHostTools(server: McpServer, client: RemnawaveClient, re
         'Bulk delete selected hosts',
         { uuids: z.array(z.string()).describe('Array of host UUIDs') },
         async (params) => {
-            try { return toolResult(await client.bulkDeleteHosts(params)); } catch (e) { return toolError(e); }
+            try {
+                auditLog(`hosts_bulk_delete count=${(params.uuids as string[]).length}`);
+                return toolResult(await client.bulkDeleteHosts(params));
+            } catch (e) { return toolError(e); }
         },
     );
 
@@ -278,7 +284,7 @@ export function registerHostTools(server: McpServer, client: RemnawaveClient, re
         'Bulk set port for selected hosts',
         {
             uuids: z.array(z.string()).describe('Array of host UUIDs'),
-            port: z.number().describe('New port number'),
+            port: z.number().int().min(1).max(65535).describe('New port number'),
         },
         async (params) => {
             try { return toolResult(await client.bulkSetHostPort(params)); } catch (e) { return toolError(e); }

@@ -1,9 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { RemnawaveClient } from '../client/index.js';
-import { toolResult, toolError } from './helpers.js';
+import { toolResult, toolError, auditLog } from './helpers.js';
+import { Config } from '../config.js';
 
-export function registerNodePluginTools(server: McpServer, client: RemnawaveClient, readonly: boolean) {
+export function registerNodePluginTools(server: McpServer, client: RemnawaveClient, config: Config) {
     server.tool('node_plugins_list', 'List all node plugins', {}, async () => {
         try { return toolResult(await client.getNodePlugins()); } catch (e) { return toolError(e); }
     });
@@ -22,7 +23,7 @@ export function registerNodePluginTools(server: McpServer, client: RemnawaveClie
         try { return toolResult(await client.getTorrentBlockerStats()); } catch (e) { return toolError(e); }
     });
 
-    if (readonly) return;
+    if (config.readonly) return;
 
     server.tool('node_plugins_create', 'Create a new node plugin', {
         name: z.string().describe('Plugin name'),
@@ -55,13 +56,24 @@ export function registerNodePluginTools(server: McpServer, client: RemnawaveClie
         try { return toolResult(await client.cloneNodePlugin(params)); } catch (e) { return toolError(e); }
     });
 
+    // Plugin execution runs configured logic on the node fleet, and torrent-report
+    // truncation irreversibly destroys abuse evidence. Both are infrastructure
+    // action primitives — kept off the LLM surface unless explicitly opted in.
+    if (!config.allowPluginExec) return;
+
     server.tool('node_plugins_execute', 'Execute a node plugin', {
         uuid: z.string().describe('Plugin UUID to execute'),
     }, async (params) => {
-        try { return toolResult(await client.executeNodePlugin(params)); } catch (e) { return toolError(e); }
+        try {
+            auditLog(`node_plugins_execute uuid=${JSON.stringify(params.uuid)}`);
+            return toolResult(await client.executeNodePlugin(params));
+        } catch (e) { return toolError(e); }
     });
 
     server.tool('node_plugins_torrent_truncate', 'Truncate all torrent blocker reports', {}, async () => {
-        try { return toolResult(await client.truncateTorrentBlockerReports()); } catch (e) { return toolError(e); }
+        try {
+            auditLog('node_plugins_torrent_truncate invoked (torrent reports destroyed)');
+            return toolResult(await client.truncateTorrentBlockerReports());
+        } catch (e) { return toolError(e); }
     });
 }
