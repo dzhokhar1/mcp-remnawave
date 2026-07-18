@@ -19,6 +19,9 @@ import { registerSubPageConfigTools } from './subscription-page-configs.js';
 import { registerNodePluginTools } from './node-plugins.js';
 import { registerIpControlTools } from './ip-control.js';
 import { registerMetadataTools } from './metadata.js';
+import { registerBandwidthTools } from './bandwidth.js';
+import { registerSubscriptionTemplateTools } from './subscription-templates.js';
+import { registerSubscriptionSettingsTools } from './subscription-settings.js';
 
 export function registerAllTools(
     server: McpServer,
@@ -43,4 +46,7 @@ export function registerAllTools(
     registerNodePluginTools(server, client, config);
     registerIpControlTools(server, client, config);
     registerMetadataTools(server, client, config);
+    registerBandwidthTools(server, client);
+    registerSubscriptionTemplateTools(server, client, config);
+    registerSubscriptionSettingsTools(server, client, config);
 }

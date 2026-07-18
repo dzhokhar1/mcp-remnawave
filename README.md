@@ -10,7 +10,7 @@
 > A **security-hardened, drop-in-compatible** fork of [TrackLine/mcp-remnawave](https://github.com/TrackLine/mcp-remnawave). Same tool surface and configuration — safer defaults and broader deployment support.
 >
 > **What this fork adds on top of upstream:**
-> - **Least-privilege by default** — read-only out of the box (~59 tools); write and high-risk capabilities unlock only via explicit, documented flags (see [Security model](#security-model)).
+> - **Least-privilege by default** — read-only out of the box (~70 tools); write and high-risk capabilities unlock only via explicit, documented flags (see [Security model](#security-model)).
 > - **Fail-closed secret redaction** — tool and resource output is scrubbed by key name *and* value shape, on both success and error paths, so panel secrets and live VPN credentials never leak into the LLM context.
 > - **Cookie / reverse-proxy auth** (`REMNAWAVE_COOKIE` / `REMNAWAVE_COOKIES`) — reach panels behind cookie-protected reverse proxies (e.g. `eGamesAPI/remnawave-reverse-proxy` with a `SECRET_KEY=SECRET_KEY`-style secret), which upstream does not support.
 > - **Hardened HTTP client** — HTTPS-only base URL by default; non-GET requests blocked entirely while in read-only mode.
@@ -19,14 +19,14 @@
 
 MCP server ([Model Context Protocol](https://modelcontextprotocol.io)) providing LLM clients (Claude Desktop, Cursor, Windsurf, etc.) with tools to manage a [Remnawave](https://github.com/remnawave/) VPN panel.
 
-**Version:** 1.2.0 | **Remnawave API:** 2.7.4
+**Version:** 1.2.0 | **Remnawave API:** 2.8.x
 
 ### Features
 
-- **153 tools** — full management of users, nodes, hosts, subscriptions, squads, HWID, config profiles, inbounds, API tokens, billing, snippets, external squads, settings, subscription page configs, node plugins, IP control, and metadata
+- **170 tools** — full management of users, nodes, hosts, subscriptions, squads, HWID, config profiles, inbounds, API tokens, billing, snippets, external squads, settings, subscription page configs, node plugins, IP control, and metadata
 - **3 resources** — real-time panel stats, node status, health checks
 - **5 prompts** — guided workflows for common tasks
-- **Least-privilege by default** — read-only out of the box (~59 tools); write and high-risk tiers unlock via explicit capability flags (see Security model)
+- **Least-privilege by default** — read-only out of the box (~70 tools); write and high-risk tiers unlock via explicit capability flags (see Security model)
 - **Caddy support** — `X-Api-Key` header for panels behind Caddy with custom path
 - **Type-safe** — built on [@remnawave/backend-contract](https://www.npmjs.com/package/@remnawave/backend-contract) for API route validation
 - **stdio transport** — works with Claude Desktop, Cursor, Windsurf, and any MCP-compatible client
@@ -101,13 +101,13 @@ data an end user places in their own `username` / `description` / `tag`), the to
 surface is **least-privilege by default** and unlocked in explicit, documented tiers.
 
 **Defaults are fail-closed.** Out of the box the server is read-only and every
-high-risk capability is off (~59 read/list tools). You opt into exactly what a
+high-risk capability is off (~70 read/list tools). You opt into exactly what a
 deployment needs:
 
 | Mode | Env | Tools exposed |
 |------|-----|---------------|
-| Read-only (default) | *(none)* | Read/list only (~59). Client also blocks every non-GET request. |
-| Write | `REMNAWAVE_READONLY=false` | + ordinary single-entity create/update/delete (~120). |
+| Read-only (default) | *(none)* | Read/list only (~70). Client also blocks every non-GET request. |
+| Write | `REMNAWAVE_READONLY=false` | + ordinary single-entity create/update/delete (~138). |
 | + Destructive | `REMNAWAVE_ALLOW_DESTRUCTIVE=true` | + bulk / whole-fleet ops. |
 | + Token admin | `REMNAWAVE_ALLOW_TOKEN_ADMIN=true` | + create/delete API tokens. |
 | + Settings write | `REMNAWAVE_ALLOW_SETTINGS_WRITE=true` | + `settings_update`. |
@@ -192,7 +192,7 @@ Environment variables are passed via `.env` file or `docker-compose.yml`.
 
 ### Available Tools
 
-#### Users (27 tools)
+#### Users (29 tools)
 
 | Tool | Description | Mode |
 |------|-------------|------|
@@ -205,6 +205,8 @@ Environment variables are passed via `.env` file or `docker-compose.yml`.
 | `users_get_by_tag` | Get user by tag | read |
 | `users_get_by_subscription_uuid` | Get user by subscription UUID | read |
 | `users_tags_list` | List all user tags | read |
+| `users_accessible_nodes` | List nodes accessible to a user | read |
+| `users_subscription_request_history` | Per-user subscription request history | read |
 | `users_resolve` | Resolve users by multiple criteria | read |
 | `users_create` | Create a new user | write |
 | `users_update` | Update user settings | write |
@@ -254,11 +256,11 @@ Environment variables are passed via `.env` file or `docker-compose.yml`.
 | `hosts_create` | Create a new host | write |
 | `hosts_update` | Update host settings | write |
 | `hosts_delete` | Delete a host | write |
-| `hosts_bulk_enable` | Bulk enable hosts | write |
-| `hosts_bulk_disable` | Bulk disable hosts | write |
-| `hosts_bulk_delete` | Bulk delete hosts | write |
-| `hosts_bulk_set_inbound` | Bulk set host inbound | write |
-| `hosts_bulk_set_port` | Bulk set host port | write |
+| `hosts_reorder` | Reorder hosts by view position | write |
+| `hosts_bulk_enable` | Bulk enable hosts | destructive |
+| `hosts_bulk_disable` | Bulk disable hosts | destructive |
+| `hosts_bulk_delete` | Bulk delete hosts | destructive |
+| `hosts_bulk_update` | Bulk update host fields (port, inbound, nodes, …) | destructive |
 
 #### System (10 tools)
 
@@ -304,7 +306,7 @@ Environment variables are passed via `.env` file or `docker-compose.yml`.
 | `config_profiles_delete` | Delete config profile | write |
 | `config_profiles_reorder` | Reorder config profiles | write |
 
-#### Internal Squads (7 tools)
+#### Internal Squads (8 tools)
 
 | Tool | Description | Mode |
 |------|-------------|------|
@@ -315,6 +317,7 @@ Environment variables are passed via `.env` file or `docker-compose.yml`.
 | `squads_delete` | Delete a squad | write |
 | `squads_add_users` | Add users to a squad | write |
 | `squads_remove_users` | Remove users from a squad | write |
+| `squads_reorder` | Reorder internal squads | write |
 
 #### HWID Devices (7 tools)
 
@@ -328,11 +331,12 @@ Environment variables are passed via `.env` file or `docker-compose.yml`.
 | `hwid_device_delete` | Delete a specific device | write |
 | `hwid_devices_delete_all` | Delete all user's devices | write |
 
-#### API Tokens (3 tools)
+#### API Tokens (4 tools)
 
 | Tool | Description | Mode |
 |------|-------------|------|
 | `api_tokens_list` | List API tokens | read |
+| `api_tokens_scopes` | List available API token scopes | read |
 | `api_tokens_create` | Create API token | write |
 | `api_tokens_delete` | Delete API token | write |
 
@@ -435,6 +439,34 @@ Environment variables are passed via `.env` file or `docker-compose.yml`.
 | `metadata_node_upsert` | Upsert node metadata | write |
 | `metadata_user_upsert` | Upsert user metadata | write |
 
+#### Bandwidth (5 tools)
+
+| Tool | Description | Mode |
+|------|-------------|------|
+| `bandwidth_nodes` | Bandwidth usage per node | read |
+| `bandwidth_nodes_realtime` | Realtime bandwidth per node | read |
+| `bandwidth_node_users` | Bandwidth of users on a node | read |
+| `bandwidth_users_by_nodes` | Per-user bandwidth by node | read |
+| `bandwidth_user` | Bandwidth for a specific user | read |
+
+#### Subscription Templates (6 tools) — Remnawave 2.8.x
+
+| Tool | Description | Mode |
+|------|-------------|------|
+| `subscription_templates_list` | List subscription templates | read |
+| `subscription_templates_get` | Get template by UUID | read |
+| `subscription_templates_create` | Create a template | write |
+| `subscription_templates_update` | Update a template | write |
+| `subscription_templates_delete` | Delete a template | write |
+| `subscription_templates_reorder` | Reorder templates | write |
+
+#### Subscription Settings (2 tools) — Remnawave 2.8.x
+
+| Tool | Description | Mode |
+|------|-------------|------|
+| `subscription_settings_get` | Get global subscription settings | read |
+| `subscription_settings_update` | Update global subscription settings | write |
+
 ### Resources
 
 | URI | Description |
@@ -516,7 +548,7 @@ MIT
 > **Security-hardened, drop-in-совместимый** форк [TrackLine/mcp-remnawave](https://github.com/TrackLine/mcp-remnawave). Тот же набор инструментов и конфигурация — но безопаснее по умолчанию и с более широкой поддержкой развёртываний.
 >
 > **Что этот форк добавляет поверх оригинала:**
-> - **Least-privilege по умолчанию** — из коробки только чтение (~59 инструментов); запись и опасные возможности открываются лишь явными задокументированными флагами (см. [«Модель безопасности»](#модель-безопасности)).
+> - **Least-privilege по умолчанию** — из коробки только чтение (~70 инструментов); запись и опасные возможности открываются лишь явными задокументированными флагами (см. [«Модель безопасности»](#модель-безопасности)).
 > - **Fail-closed редакция секретов** — вывод инструментов и ресурсов маскируется по имени ключа *и* по форме значения, на путях успеха и ошибки, поэтому секреты панели и живые VPN-креды не утекают в контекст LLM.
 > - **Cookie / reverse-proxy авторизация** (`REMNAWAVE_COOKIE` / `REMNAWAVE_COOKIES`) — работа с панелями за реверс-прокси с защитой по кукам (например, `eGamesAPI/remnawave-reverse-proxy` с секретом вида `SECRET_KEY=SECRET_KEY`), чего оригинал не поддерживает.
 > - **Харденинг HTTP-клиента** — в base URL по умолчанию только HTTPS; в read-only режиме не-GET запросы блокируются полностью.
@@ -525,14 +557,14 @@ MIT
 
 MCP-сервер ([Model Context Protocol](https://modelcontextprotocol.io)), предоставляющий LLM-клиентам (Claude Desktop, Cursor, Windsurf и др.) инструменты для управления VPN-панелью [Remnawave](https://github.com/remnawave/).
 
-**Версия:** 1.2.0 | **Remnawave API:** 2.7.4
+**Версия:** 1.2.0 | **Remnawave API:** 2.8.x
 
 ### Возможности
 
-- **153 инструмента** — полное управление пользователями, нодами, хостами, подписками, группами, HWID, конфиг-профилями, inbounds, API-токенами, биллингом, сниппетами, внешними группами, настройками, страницами подписок, плагинами нод, IP-контролем и метаданными
+- **170 инструментов** — полное управление пользователями, нодами, хостами, подписками, группами, HWID, конфиг-профилями, inbounds, API-токенами, биллингом, сниппетами, внешними группами, настройками, страницами подписок, плагинами нод, IP-контролем и метаданными
 - **3 ресурса** — статистика панели, статус нод, проверка здоровья в реальном времени
 - **5 промптов** — пошаговые сценарии для типичных задач
-- **Least-privilege по умолчанию** — из коробки только чтение (~59 инструментов); запись и опасные уровни открываются явными capability-флагами (см. «Модель безопасности»)
+- **Least-privilege по умолчанию** — из коробки только чтение (~70 инструментов); запись и опасные уровни открываются явными capability-флагами (см. «Модель безопасности»)
 - **Поддержка Caddy** — заголовок `X-Api-Key` для панелей за Caddy с кастомным путём
 - **Type-safe** — построен на [@remnawave/backend-contract](https://www.npmjs.com/package/@remnawave/backend-contract) для валидации API-маршрутов
 - **stdio транспорт** — работает с Claude Desktop, Cursor, Windsurf и любым MCP-совместимым клиентом
@@ -608,12 +640,12 @@ LLM. Поскольку LLM управляем инъекцией промпта
 явными задокументированными уровнями.
 
 **Дефолты fail-closed.** Из коробки сервер работает только на чтение, все опасные
-возможности выключены (~59 инструментов чтения). Включаете ровно то, что нужно:
+возможности выключены (~70 инструментов чтения). Включаете ровно то, что нужно:
 
 | Режим | Env | Доступные инструменты |
 |-------|-----|-----------------------|
-| Только чтение (дефолт) | *(ничего)* | Только чтение (~59). Клиент также блокирует любые не-GET запросы. |
-| Запись | `REMNAWAVE_READONLY=false` | + обычные одиночные create/update/delete (~120). |
+| Только чтение (дефолт) | *(ничего)* | Только чтение (~70). Клиент также блокирует любые не-GET запросы. |
+| Запись | `REMNAWAVE_READONLY=false` | + обычные одиночные create/update/delete (~138). |
 | + Destructive | `REMNAWAVE_ALLOW_DESTRUCTIVE=true` | + bulk / операции над всем флотом. |
 | + Token admin | `REMNAWAVE_ALLOW_TOKEN_ADMIN=true` | + создание/удаление API-токенов. |
 | + Settings write | `REMNAWAVE_ALLOW_SETTINGS_WRITE=true` | + `settings_update`. |
@@ -699,7 +731,7 @@ docker compose up -d
 
 ### Доступные инструменты
 
-#### Пользователи (27 инструментов)
+#### Пользователи (29 инструментов)
 
 | Инструмент | Описание | Режим |
 |------------|----------|-------|
@@ -712,6 +744,8 @@ docker compose up -d
 | `users_get_by_tag` | Получить пользователя по тегу | read |
 | `users_get_by_subscription_uuid` | Получить пользователя по UUID подписки | read |
 | `users_tags_list` | Список тегов пользователей | read |
+| `users_accessible_nodes` | Ноды, доступные пользователю | read |
+| `users_subscription_request_history` | История запросов подписки пользователя | read |
 | `users_resolve` | Поиск пользователей по нескольким критериям | read |
 | `users_create` | Создать нового пользователя | write |
 | `users_update` | Обновить настройки пользователя | write |
@@ -761,11 +795,11 @@ docker compose up -d
 | `hosts_create` | Создать новый хост | write |
 | `hosts_update` | Обновить настройки хоста | write |
 | `hosts_delete` | Удалить хост | write |
-| `hosts_bulk_enable` | Массовое включение хостов | write |
-| `hosts_bulk_disable` | Массовое отключение хостов | write |
-| `hosts_bulk_delete` | Массовое удаление хостов | write |
-| `hosts_bulk_set_inbound` | Массовая установка inbound | write |
-| `hosts_bulk_set_port` | Массовая установка порта | write |
+| `hosts_reorder` | Изменить порядок хостов | write |
+| `hosts_bulk_enable` | Массовое включение хостов | destructive |
+| `hosts_bulk_disable` | Массовое отключение хостов | destructive |
+| `hosts_bulk_delete` | Массовое удаление хостов | destructive |
+| `hosts_bulk_update` | Массовое обновление полей (порт, inbound, ноды…) | destructive |
 
 #### Система (10 инструментов)
 
@@ -811,7 +845,7 @@ docker compose up -d
 | `config_profiles_delete` | Удалить конфиг-профиль | write |
 | `config_profiles_reorder` | Переупорядочить конфиг-профили | write |
 
-#### Внутренние группы (7 инструментов)
+#### Внутренние группы (8 инструментов)
 
 | Инструмент | Описание | Режим |
 |------------|----------|-------|
@@ -822,6 +856,7 @@ docker compose up -d
 | `squads_delete` | Удалить группу | write |
 | `squads_add_users` | Добавить пользователей в группу | write |
 | `squads_remove_users` | Убрать пользователей из группы | write |
+| `squads_reorder` | Изменить порядок групп | write |
 
 #### HWID-устройства (7 инструментов)
 
@@ -835,11 +870,12 @@ docker compose up -d
 | `hwid_device_delete` | Удалить конкретное устройство | write |
 | `hwid_devices_delete_all` | Удалить все устройства пользователя | write |
 
-#### API-токены (3 инструмента)
+#### API-токены (4 инструмента)
 
 | Инструмент | Описание | Режим |
 |------------|----------|-------|
 | `api_tokens_list` | Список API-токенов | read |
+| `api_tokens_scopes` | Список доступных скоупов токенов | read |
 | `api_tokens_create` | Создать API-токен | write |
 | `api_tokens_delete` | Удалить API-токен | write |
 
@@ -941,6 +977,34 @@ docker compose up -d
 | `metadata_user_get` | Получить метаданные пользователя | read |
 | `metadata_node_upsert` | Обновить метаданные ноды | write |
 | `metadata_user_upsert` | Обновить метаданные пользователя | write |
+
+#### Bandwidth (5 инструментов)
+
+| Инструмент | Описание | Режим |
+|------------|----------|-------|
+| `bandwidth_nodes` | Трафик по нодам | read |
+| `bandwidth_nodes_realtime` | Трафик по нодам в реальном времени | read |
+| `bandwidth_node_users` | Трафик пользователей на ноде | read |
+| `bandwidth_users_by_nodes` | Трафик пользователей в разрезе нод | read |
+| `bandwidth_user` | Трафик конкретного пользователя | read |
+
+#### Шаблоны подписок (6 инструментов) — Remnawave 2.8.x
+
+| Инструмент | Описание | Режим |
+|------------|----------|-------|
+| `subscription_templates_list` | Список шаблонов подписок | read |
+| `subscription_templates_get` | Получить шаблон по UUID | read |
+| `subscription_templates_create` | Создать шаблон | write |
+| `subscription_templates_update` | Обновить шаблон | write |
+| `subscription_templates_delete` | Удалить шаблон | write |
+| `subscription_templates_reorder` | Изменить порядок шаблонов | write |
+
+#### Настройки подписок (2 инструмента) — Remnawave 2.8.x
+
+| Инструмент | Описание | Режим |
+|------------|----------|-------|
+| `subscription_settings_get` | Получить глобальные настройки подписок | read |
+| `subscription_settings_update` | Обновить глобальные настройки подписок | write |
 
 ### Ресурсы
 

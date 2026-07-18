@@ -182,6 +182,14 @@ export class RemnawaveClient {
         return this.get(REST_API.USERS.TAGS.GET);
     }
 
+    async getUserAccessibleNodes(uuid: string) {
+        return this.get(REST_API.USERS.ACCESSIBLE_NODES(enc(uuid)));
+    }
+
+    async getUserSubscriptionRequestHistory(uuid: string) {
+        return this.get(REST_API.USERS.SUBSCRIPTION_REQUEST_HISTORY(enc(uuid)));
+    }
+
     async resolveUsers(params: Record<string, unknown>) {
         return this.post(REST_API.USERS.RESOLVE, params);
     }
@@ -354,12 +362,14 @@ export class RemnawaveClient {
         return this.post(REST_API.HOSTS.BULK.DELETE_HOSTS, params);
     }
 
-    async bulkSetHostInbound(params: Record<string, unknown>) {
-        return this.post(REST_API.HOSTS.BULK.SET_INBOUND, params);
+    // Remnawave 2.8.x: the per-field bulk endpoints (SET_INBOUND / SET_PORT) were
+    // removed in favor of a single generic bulk update taking uuids + any fields.
+    async bulkUpdateHosts(params: Record<string, unknown>) {
+        return this.patch(REST_API.HOSTS.BULK.UPDATE, params);
     }
 
-    async bulkSetHostPort(params: Record<string, unknown>) {
-        return this.post(REST_API.HOSTS.BULK.SET_PORT, params);
+    async reorderHosts(params: Record<string, unknown>) {
+        return this.post(REST_API.HOSTS.ACTIONS.REORDER, params);
     }
 
     // System
@@ -518,6 +528,10 @@ export class RemnawaveClient {
         );
     }
 
+    async reorderInternalSquads(params: Record<string, unknown>) {
+        return this.post(REST_API.INTERNAL_SQUADS.ACTIONS.REORDER, params);
+    }
+
     // HWID
 
     async getUserHwidDevices(userUuid: string) {
@@ -566,6 +580,14 @@ export class RemnawaveClient {
         return this.get(REST_API.BANDWIDTH_STATS.USERS.GET_BY_UUID(enc(uuid)));
     }
 
+    async getNodeUsersBandwidth(nodeUuid: string) {
+        return this.get(REST_API.BANDWIDTH_STATS.NODES.GET_USERS(enc(nodeUuid)));
+    }
+
+    async getUsersBandwidthByNodes() {
+        return this.get(REST_API.BANDWIDTH_STATS.NODES.GET_USERS_BY_NODES);
+    }
+
     // Auth
 
     async getAuthStatus() {
@@ -576,6 +598,10 @@ export class RemnawaveClient {
 
     async getApiTokens() {
         return this.get(REST_API.API_TOKENS.GET);
+    }
+
+    async getApiTokenScopes() {
+        return this.get(REST_API.API_TOKENS.GET_SCOPES);
     }
 
     async createApiToken(params: Record<string, unknown>) {
@@ -708,6 +734,42 @@ export class RemnawaveClient {
 
     async updateSettings(params: Record<string, unknown>) {
         return this.patch(REST_API.REMNAAWAVE_SETTINGS.UPDATE, params);
+    }
+
+    // Subscription Settings (Remnawave 2.8.x)
+
+    async getSubscriptionSettings() {
+        return this.get(REST_API.SUBSCRIPTION_SETTINGS.GET);
+    }
+
+    async updateSubscriptionSettings(params: Record<string, unknown>) {
+        return this.patch(REST_API.SUBSCRIPTION_SETTINGS.UPDATE, params);
+    }
+
+    // Subscription Templates (Remnawave 2.8.x)
+
+    async getSubscriptionTemplates() {
+        return this.get(REST_API.SUBSCRIPTION_TEMPLATE.GET_ALL);
+    }
+
+    async getSubscriptionTemplate(uuid: string) {
+        return this.get(REST_API.SUBSCRIPTION_TEMPLATE.GET(enc(uuid)));
+    }
+
+    async createSubscriptionTemplate(params: Record<string, unknown>) {
+        return this.post(REST_API.SUBSCRIPTION_TEMPLATE.CREATE, params);
+    }
+
+    async updateSubscriptionTemplate(params: Record<string, unknown>) {
+        return this.patch(REST_API.SUBSCRIPTION_TEMPLATE.UPDATE, params);
+    }
+
+    async deleteSubscriptionTemplate(uuid: string) {
+        return this.delete(REST_API.SUBSCRIPTION_TEMPLATE.DELETE(enc(uuid)));
+    }
+
+    async reorderSubscriptionTemplates(params: Record<string, unknown>) {
+        return this.post(REST_API.SUBSCRIPTION_TEMPLATE.ACTIONS.REORDER, params);
     }
 
     // Subscription Page Configs
